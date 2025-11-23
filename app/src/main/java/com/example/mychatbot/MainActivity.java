@@ -1,6 +1,7 @@
 package com.example.mychatbot;
 
 import android.os.Bundle;
+import android.os.Handler;
 import android.text.TextUtils;
 import android.view.View;
 import android.widget.EditText;
@@ -78,6 +79,24 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+//    private void sendMessage() {
+//        String msgContent = editTextMessage.getText().toString().trim();
+//
+//        if (TextUtils.isEmpty(msgContent)) {
+//            return;
+//        }
+//
+//        addMessage(msgContent, true);
+//        editTextMessage.setText("");
+//
+//        ChatMessage loadingMessage = new ChatMessage("Đang xử lý ...", false);
+//        messageList.add(loadingMessage);
+//        chatAdapter.notifyItemInserted(messageList.size() - 1);
+//        recyclerView.scrollToPosition(messageList.size() - 1);
+//
+//        // Gọi API
+//        callChatApi(msgContent, loadingMessage);
+//    }
     private void sendMessage() {
         String msgContent = editTextMessage.getText().toString().trim();
 
@@ -88,13 +107,36 @@ public class MainActivity extends AppCompatActivity {
         addMessage(msgContent, true);
         editTextMessage.setText("");
 
-        ChatMessage loadingMessage = new ChatMessage("... đang xử lý ...", false);
+        // Tạo loading message
+        final ChatMessage loadingMessage = new ChatMessage(".", false);
         messageList.add(loadingMessage);
         chatAdapter.notifyItemInserted(messageList.size() - 1);
         recyclerView.scrollToPosition(messageList.size() - 1);
 
+        // -----------------------------
+        // Handler để làm nháy dấu 3 chấm
+        // -----------------------------
+        final Handler handler = new Handler();
+        final String[] dots = {".", ". .", ". . ."};
+        final int[] index = {0};
+
+        Runnable runnable = new Runnable() {
+            @Override
+            public void run() {
+                loadingMessage.setMessage(dots[index[0]]);
+                chatAdapter.notifyItemChanged(messageList.indexOf(loadingMessage));
+                index[0] = (index[0] + 1) % dots.length;
+                handler.postDelayed(this, 500);
+            }
+        };
+        handler.post(runnable);
+
         // Gọi API
         callChatApi(msgContent, loadingMessage);
+
+        // Khi API trả về xong, remove loading và stop animation
+        loadingMessage.setHandler(handler);
+        loadingMessage.setRunnable(runnable);
     }
 
     // Hàm gọi API
@@ -131,7 +173,17 @@ public class MainActivity extends AppCompatActivity {
         recyclerView.scrollToPosition(messageList.size() - 1);
     }
 
+//    private void removeLoadingMessage(ChatMessage loadingMsg) {
+//        int position = messageList.indexOf(loadingMsg);
+//        if (position != -1) {
+//            messageList.remove(position);
+//            chatAdapter.notifyItemRemoved(position);
+//        }
+//    }
     private void removeLoadingMessage(ChatMessage loadingMsg) {
+        // Stop nháy chấm
+        loadingMsg.stopAnimation();
+
         int position = messageList.indexOf(loadingMsg);
         if (position != -1) {
             messageList.remove(position);

@@ -1,5 +1,6 @@
 package com.example.mychatbot.adapter;
 
+import android.text.Spanned;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -87,7 +88,33 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         }
 
         void bind(ChatMessage message) {
-            textMessage.setText(message.getMessage());
+            String text = message.getMessage().replace("LLM response:", "").trim();
+            textMessage.setText(parseMarkdown(text));
+        }
+
+        // Chuyển Markdown đơn giản sang Spanned (bold + bullet + xuống dòng)
+        private CharSequence parseMarkdown(String input) {
+            android.text.SpannableStringBuilder builder = new android.text.SpannableStringBuilder();
+            String[] lines = input.split("\n");
+
+            for (String line : lines) {
+                int start = builder.length();
+
+                if (line.contains("**")) {
+                    line = line.replace("**", "");
+                    builder.append(line);
+                    builder.setSpan(new android.text.style.StyleSpan(android.graphics.Typeface.BOLD),
+                            start, start + line.length(),
+                            Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                } else if (line.trim().startsWith("*")) {
+                    builder.append("• " + line.replace("*", "").trim());
+                } else {
+                    builder.append(line);
+                }
+                builder.append("\n");
+            }
+            return builder;
         }
     }
+
 }

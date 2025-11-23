@@ -14,12 +14,13 @@
         android:id="@+id/textTitle"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="#FFFFFF"
-        android:elevation="4dp"
+        android:background="@drawable/bg_header"
+        android:elevation="6dp"
         android:gravity="center"
-        android:padding="16dp"
+        android:padding="10dp"
         android:text="Trợ lý AI"
-        android:textSize="20sp"
+        android:textColor="@color/white"
+        android:textSize="22sp"
         android:textStyle="bold" />
 
     <androidx.recyclerview.widget.RecyclerView

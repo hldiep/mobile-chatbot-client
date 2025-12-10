@@ -92,7 +92,6 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             textMessage.setText(parseMarkdown(text));
         }
 
-        // Chuyển Markdown đơn giản sang Spanned (bold + bullet + xuống dòng)
         private CharSequence parseMarkdown(String input) {
             android.text.SpannableStringBuilder builder = new android.text.SpannableStringBuilder();
             String[] lines = input.split("\n");

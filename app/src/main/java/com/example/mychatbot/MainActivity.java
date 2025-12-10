@@ -3,6 +3,7 @@ package com.example.mychatbot;
 import android.os.Bundle;
 import android.os.Handler;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.ImageButton;
@@ -14,6 +15,8 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.mychatbot.adapter.ChatAdapter;
 import com.example.mychatbot.api.ApiClient;
 import com.example.mychatbot.api.ApiService;
+import com.example.mychatbot.api.ChatRequest;
+import com.example.mychatbot.api.HistoryItem;
 import com.example.mychatbot.models.ChatMessage;
 import com.example.mychatbot.models.ChatResponse;
 
@@ -56,7 +59,6 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onLayoutChange(View v, int left, int top, int right, int bottom,
                                        int oldLeft, int oldTop, int oldRight, int oldBottom) {
-                // Nếu chiều cao bottom nhỏ hơn oldBottom -> Bàn phím đang hiện lên
                 if (bottom < oldBottom) {
                     if (messageList.size() > 0) {
                         if (!recyclerView.canScrollVertically(-1)) {
@@ -79,43 +81,41 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-//    private void sendMessage() {
-//        String msgContent = editTextMessage.getText().toString().trim();
-//
-//        if (TextUtils.isEmpty(msgContent)) {
-//            return;
-//        }
-//
-//        addMessage(msgContent, true);
-//        editTextMessage.setText("");
-//
-//        ChatMessage loadingMessage = new ChatMessage("Đang xử lý ...", false);
-//        messageList.add(loadingMessage);
-//        chatAdapter.notifyItemInserted(messageList.size() - 1);
-//        recyclerView.scrollToPosition(messageList.size() - 1);
-//
-//        // Gọi API
-//        callChatApi(msgContent, loadingMessage);
-//    }
+    private List<HistoryItem> buildHistory(List<ChatMessage> messages) {
+        List<HistoryItem> history = new ArrayList<>();
+
+        for (int i = 0; i < messages.size(); i++) {
+            ChatMessage msg = messages.get(i);
+
+            if (msg.isUser()) {
+                String userText = msg.getMessage();
+
+                String botText = "";
+                if (i + 1 < messages.size() && !messages.get(i + 1).isUser()) {
+                    botText = messages.get(i + 1).getMessage();
+                }
+
+                history.add(new HistoryItem(userText, botText));
+            }
+        }
+
+        return history;
+    }
     private void sendMessage() {
         String msgContent = editTextMessage.getText().toString().trim();
 
         if (TextUtils.isEmpty(msgContent)) {
             return;
         }
-
+        Log.d("CHAT_APP", "User gửi: " + msgContent);
         addMessage(msgContent, true);
         editTextMessage.setText("");
 
-        // Tạo loading message
         final ChatMessage loadingMessage = new ChatMessage(".", false);
         messageList.add(loadingMessage);
         chatAdapter.notifyItemInserted(messageList.size() - 1);
         recyclerView.scrollToPosition(messageList.size() - 1);
 
-        // -----------------------------
-        // Handler để làm nháy dấu 3 chấm
-        // -----------------------------
         final Handler handler = new Handler();
         final String[] dots = {".", ". .", ". . ."};
         final int[] index = {0};
@@ -131,20 +131,22 @@ public class MainActivity extends AppCompatActivity {
         };
         handler.post(runnable);
 
-        // Gọi API
         callChatApi(msgContent, loadingMessage);
 
-        // Khi API trả về xong, remove loading và stop animation
         loadingMessage.setHandler(handler);
         loadingMessage.setRunnable(runnable);
     }
 
-    // Hàm gọi API
     private void callChatApi(String question, ChatMessage loadingMsg) {
-        apiService.sendMessage(question).enqueue(new Callback<ChatResponse>() {
+
+        List<HistoryItem> history = buildHistory(messageList);
+
+        ChatRequest request = new ChatRequest(question, history);
+
+        apiService.sendMessage(request).enqueue(new Callback<ChatResponse>() {
             @Override
             public void onResponse(Call<ChatResponse> call, Response<ChatResponse> response) {
-
+                Log.d("CHAT_APP", "API trả về: " + response.code());
                 removeLoadingMessage(loadingMsg);
 
                 if (response.isSuccessful() && response.body() != null) {
@@ -173,15 +175,7 @@ public class MainActivity extends AppCompatActivity {
         recyclerView.scrollToPosition(messageList.size() - 1);
     }
 
-//    private void removeLoadingMessage(ChatMessage loadingMsg) {
-//        int position = messageList.indexOf(loadingMsg);
-//        if (position != -1) {
-//            messageList.remove(position);
-//            chatAdapter.notifyItemRemoved(position);
-//        }
-//    }
     private void removeLoadingMessage(ChatMessage loadingMsg) {
-        // Stop nháy chấm
         loadingMsg.stopAnimation();
 
         int position = messageList.indexOf(loadingMsg);
